@@ -19,6 +19,8 @@
 // DEALINGS IN THE SOFTWARE.
 
 #[cfg(not(target_arch = "wasm32"))]
+pub use std::time::Instant;
+#[cfg(not(target_arch = "wasm32"))]
 pub use tokio_timer::*;
 #[cfg(target_arch = "wasm32")]
 pub use wasm::*;
