@@ -19,7 +19,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use std::time::Instant;
+pub use std::time::{Instant, SystemTime, UNIX_EPOCH};
 #[cfg(not(target_arch = "wasm32"))]
 pub use tokio_timer::*;
 #[cfg(target_arch = "wasm32")]
