@@ -21,13 +21,9 @@
 
 #![cfg(target_arch = "wasm32")]
 
-// TODO: global thing
-use futures::{prelude::*, channel::oneshot};
-use std::{error, fmt};
 use std::cmp::{Eq, PartialEq, Ord, PartialOrd, Ordering};
 use std::ops::{Add, Sub, AddAssign, SubAssign};
 use std::time::Duration;
-use wasm_bindgen::{prelude::*, JsCast};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Instant {
