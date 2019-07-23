@@ -18,12 +18,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+pub use timer::*;
+
 #[cfg(not(target_arch = "wasm32"))]
 pub use std::time::{Instant, SystemTime, UNIX_EPOCH};
-#[cfg(not(target_arch = "wasm32"))]
-pub use tokio_timer::*;
 #[cfg(target_arch = "wasm32")]
 pub use wasm::*;
 
+mod timer;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
