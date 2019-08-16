@@ -1,4 +1,4 @@
-use futures::task::ArcWake;
+use futures::task::{ArcWake, self};
 use parking_lot::Mutex;
 use std::convert::TryFrom;
 use std::future::Future;
@@ -33,7 +33,7 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
             // We start by polling the timer. If any new `Delay` is created, the waker will be used
             // to wake up this task pre-emptively. As such, we pass a `Waker` that calls
             // `schedule_callback` with a delay of `0`.
-            let waker = Arc::new(Waker { timer: timer.clone() }).into_waker();
+            let waker = task::waker(Arc::new(Waker { timer: timer.clone() }));
             let _ = Future::poll(Pin::new(&mut *timer_lock), &mut Context::from_waker(&waker));
 
             // Notify the timers that are ready.
