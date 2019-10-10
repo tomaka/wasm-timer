@@ -537,7 +537,7 @@ impl TimerHandle {
 }
 
 impl Default for TimerHandle {
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
     fn default() -> TimerHandle {
         let mut fallback = HANDLE_FALLBACK.load(SeqCst);
 
@@ -579,7 +579,7 @@ impl Default for TimerHandle {
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
+    #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
     fn default() -> TimerHandle {
         let mut fallback = HANDLE_FALLBACK.load(SeqCst);
 

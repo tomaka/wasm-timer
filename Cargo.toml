@@ -2,7 +2,7 @@
 name = "wasm-timer"
 edition = "2018"
 description = "Abstraction over std::time::Instant and futures-timer that works on WASM"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Pierre Krieger <pierre.krieger1708@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/tomaka/wasm-timer"
@@ -12,7 +12,7 @@ futures-preview = "0.3.0-alpha"
 parking_lot = "0.9"
 pin-utils = "0.1.0-alpha.4"
 
-[target.'cfg(any(target_arch = "wasm32"))'.dependencies]
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 js-sys = "0.3.14"
 send_wrapper = "0.2"
 wasm-bindgen = { version = "0.2.37" }

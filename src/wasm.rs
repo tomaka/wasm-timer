@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#![cfg(target_arch = "wasm32")]
+#![cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 
 use std::cmp::{Eq, PartialEq, Ord, PartialOrd, Ordering};
 use std::ops::{Add, Sub, AddAssign, SubAssign};
