@@ -2,7 +2,7 @@
 name = "wasm-timer"
 edition = "2018"
 description = "Abstraction over std::time::Instant and futures-timer that works on WASM"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Pierre Krieger <pierre.krieger1708@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/tomaka/wasm-timer"
