@@ -7,8 +7,7 @@ use std::task::{Context, RawWaker, RawWakerVTable, Waker};
 use std::thread;
 use std::thread::Thread;
 use std::time::Instant;
-
-use pin_utils::pin_mut;
+use std::pin::Pin;
 
 use crate::{Timer, TimerHandle};
 
@@ -54,11 +53,11 @@ impl Drop for HelperThread {
     }
 }
 
-fn run(timer: Timer, done: Arc<AtomicBool>) {
+fn run(mut timer: Timer, done: Arc<AtomicBool>) {
     let mut waker = current_thread_waker();
     let mut cx = Context::from_waker(&mut waker);
 
-    pin_mut!(timer);
+    let mut timer = Pin::new(&mut timer);
     while !done.load(Ordering::SeqCst) {
         drop(timer.as_mut().poll(&mut cx));
 

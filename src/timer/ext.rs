@@ -6,7 +6,6 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use futures::prelude::*;
-use pin_utils::unsafe_pinned;
 
 use crate::{Delay, Instant};
 
@@ -87,29 +86,22 @@ where
     timeout: Delay,
 }
 
-impl<F> Timeout<F>
-where
-    F: TryFuture,
-    F::Error: From<io::Error>,
-{
-    unsafe_pinned!(future: F);
-    unsafe_pinned!(timeout: Delay);
-}
-
 impl<F> Future for Timeout<F>
 where
-    F: TryFuture,
+    F: TryFuture + Unpin,
     F::Error: From<io::Error>,
 {
     type Output = Result<F::Ok, F::Error>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        match self.as_mut().future().try_poll(cx) {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = Pin::into_inner(self);
+
+        match Pin::new(&mut this.future).try_poll(cx) {
             Poll::Pending => {}
             other => return other,
         }
 
-        if self.timeout().poll(cx).is_ready() {
+        if Pin::new(&mut this.timeout).poll(cx).is_ready() {
             let err = Err(io::Error::new(io::ErrorKind::TimedOut, "future timed out").into());
             Poll::Ready(err)
         } else {
@@ -158,39 +150,32 @@ where
     stream: S,
 }
 
-impl<S> TimeoutStream<S>
-where
-    S: TryStream,
-    S::Error: From<io::Error>,
-{
-    unsafe_pinned!(timeout: Delay);
-    unsafe_pinned!(stream: S);
-}
-
 impl<S> Stream for TimeoutStream<S>
 where
-    S: TryStream,
+    S: TryStream + Unpin,
     S::Error: From<io::Error>,
 {
     type Item = Result<S::Ok, S::Error>;
 
     fn poll_next(
-        mut self: Pin<&mut Self>,
+        self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Self::Item>> {
-        let dur = self.dur;
+        let this = Pin::into_inner(self);
 
-        let r = self.as_mut().stream().try_poll_next(cx);
+        let dur = this.dur;
+
+        let r = Pin::new(&mut this.stream).try_poll_next(cx);
         match r {
             Poll::Pending => {}
             other => {
-                self.as_mut().timeout().reset(dur);
+                this.timeout.reset(dur);
                 return other;
             }
         }
 
-        if self.as_mut().timeout().poll(cx).is_ready() {
-            self.as_mut().timeout().reset(dur);
+        if Pin::new(&mut this.timeout).poll(cx).is_ready() {
+            this.timeout.reset(dur);
             Poll::Ready(Some(Err(io::Error::new(
                 io::ErrorKind::TimedOut,
                 "stream item timed out",

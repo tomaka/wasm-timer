@@ -1,4 +1,3 @@
-use pin_utils::unsafe_pinned;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Duration;
@@ -24,8 +23,6 @@ pub struct Interval {
 }
 
 impl Interval {
-    unsafe_pinned!(delay: Delay);
-
     /// Creates a new interval which will fire at `dur` time into the future,
     /// and will repeat every `dur` interval after
     ///
@@ -62,12 +59,14 @@ impl Interval {
 impl Stream for Interval {
     type Item = ();
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        if Pin::new(&mut *self).delay().poll(cx).is_pending() {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = Pin::into_inner(self);
+
+        if Pin::new(&mut this.delay).poll(cx).is_pending() {
             return Poll::Pending;
         }
-        let next = next_interval(delay::fires_at(&self.delay), Instant::now(), self.interval);
-        self.delay.reset_at(next);
+        let next = next_interval(delay::fires_at(&this.delay), Instant::now(), this.interval);
+        this.delay.reset_at(next);
         Poll::Ready(Some(()))
     }
 }
