@@ -70,6 +70,18 @@ impl Instant {
     pub fn elapsed(&self) -> Duration {
         Instant::now() - *self
     }
+
+    pub fn saturating_duration_since(&self, earlier: Instant) -> Duration {
+        self.checked_duration_since(earlier).unwrap_or(Duration::new(0, 0))
+    }
+
+    pub fn checked_duration_since(&self, earlier: Instant) -> Option<Duration> {
+        if self.inner >= earlier.inner {
+            Some(*self - earlier)
+        } else {
+            None
+        }
+    }
 }
 
 impl Add<Duration> for Instant {
@@ -186,5 +198,27 @@ impl AddAssign<Duration> for SystemTime {
 impl SubAssign<Duration> for SystemTime {
     fn sub_assign(&mut self, rhs: Duration) {
         *self = *self - rhs;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn instant_checked_duration_since_nopanic() {
+        let now = Instant::now();
+        let earlier = now - Duration::new(1, 0);
+        let later = now + Duration::new(1, 0);
+        assert_eq!(earlier.checked_duration_since(now), None);
+        assert_eq!(later.checked_duration_since(now), Some(Duration::new(1, 0)));
+        assert_eq!(now.checked_duration_since(now), Some(Duration::new(0, 0)));
+    }
+
+    #[test]
+    fn instant_saturating_duration_since_nopanic() {
+        let a = Instant::now();
+        let ret = (a - Duration::new(1, 0)).saturating_duration_since(a);
+        assert_eq!(ret, Duration::new(0, 0));
     }
 }
