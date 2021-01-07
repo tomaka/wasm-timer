@@ -13,6 +13,7 @@ parking_lot = "0.11"
 pin-utils = "0.1.0"
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+parking_lot = { version = "0.11", features = ["wasm-bindgen"] }
 js-sys = "0.3.31"
 wasm-bindgen = "0.2.37"
 wasm-bindgen-futures = "0.4.4"
