@@ -70,6 +70,25 @@ impl Instant {
     pub fn elapsed(&self) -> Duration {
         Instant::now() - *self
     }
+
+    pub fn checked_duration_since(&self, earlier: Instant) -> Option<Duration> {
+        match self.cmp(&earlier) {
+            Ordering::Less => None,
+            _ => Some(self.duration_since(earlier)),
+        }
+    }
+
+    pub fn saturating_duration_since(&self, earlier: Instant) -> Duration {
+        self.checked_duration_since(earlier).unwrap_or_default()
+    }
+
+    pub fn checked_add(&self, duration: Duration) -> Option<Instant> {
+        Some(*self + duration)
+    }
+
+    pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
+        Some(*self - duration)
+    }
 }
 
 impl Add<Duration> for Instant {
