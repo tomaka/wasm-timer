@@ -55,11 +55,15 @@ impl Ord for Instant {
 
 impl Instant {
     pub fn now() -> Instant {
-        let val = web_sys::window()
-            .expect("not in a browser")
-            .performance()
-            .expect("performance object not available")
-            .now();
+        let val = {
+            use wasm_bindgen::prelude::*;
+            use wasm_bindgen::JsCast;
+            js_sys::Reflect::get(&js_sys::global(), &JsValue::from_str("performance"))
+                .expect("failed to get performance from global object")
+                .unchecked_into::<web_sys::Performance>()
+                .now()
+        };
+
         Instant { inner: val }
     }
 
