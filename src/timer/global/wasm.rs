@@ -51,17 +51,11 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
             }
 
             // We call `schedule_callback` again for the next event.
-            let sleep_dur = timer_lock.next_event()
-                .map(|next_event| {
-                    if next_event > now {
-                        next_event - now
-                    } else {
-                        Duration::new(0, 0)
-                    }
-                })
-                .unwrap_or(Duration::from_secs(5));
-            drop(timer_lock);
-            schedule_callback(timer, sleep_dur);
+            if let Some(next_event) = timer_lock.next_event() {
+                if next_event > now {
+                    schedule_callback(timer.clone(), next_event - now);
+                }
+            }
 
         }).unchecked_ref(),
         i32::try_from(when.as_millis()).unwrap_or(0)
