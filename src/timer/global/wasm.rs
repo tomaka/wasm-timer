@@ -22,10 +22,12 @@ pub(crate) fn run() -> TimerHandle {
     handle
 }
 
-/// Calls `Window::setTimeout` with the given `Duration`. The callback wakes up the timer and
+/// Calls `setTimeout` with the given `Duration`. The callback wakes up the timer and
 /// processes everything.
 fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
-    let window = web_sys::window().expect("Unable to access Window");
+    // Both node and web have `setTimeout` available in their global scope
+    // so we can treat this as a `Window`.
+    let window = js_sys::global().unchecked_into::<web_sys::Window>();
     let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
         &Closure::once_into_js(move || {
             let mut timer_lock = timer.lock();
@@ -49,17 +51,12 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
             }
 
             // We call `schedule_callback` again for the next event.
-            let sleep_dur = timer_lock.next_event()
-                .map(|next_event| {
-                    if next_event > now {
-                        next_event - now
-                    } else {
-                        Duration::new(0, 0)
-                    }
-                })
-                .unwrap_or(Duration::from_secs(5));
-            drop(timer_lock);
-            schedule_callback(timer, sleep_dur);
+            if let Some(next_event) = timer_lock.next_event() {
+                if next_event > now {
+                    drop(timer_lock);
+                    schedule_callback(timer.clone(), next_event - now);
+                }
+            }
 
         }).unchecked_ref(),
         i32::try_from(when.as_millis()).unwrap_or(0)
