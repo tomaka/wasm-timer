@@ -53,6 +53,7 @@ fn schedule_callback(timer: Arc<Mutex<Timer>>, when: Duration) {
             // We call `schedule_callback` again for the next event.
             if let Some(next_event) = timer_lock.next_event() {
                 if next_event > now {
+                    drop(timer_lock);
                     schedule_callback(timer.clone(), next_event - now);
                 }
             }
