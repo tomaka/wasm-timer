@@ -231,9 +231,8 @@
 
 use crate::Instant;
 use std::cmp::Ordering;
-use std::mem;
 use std::pin::Pin;
-use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::{AtomicPtr, AtomicUsize};
 use std::sync::atomic::Ordering::SeqCst;
 use std::sync::{Arc, Mutex, Weak};
 use std::task::{Context, Poll};
@@ -484,7 +483,8 @@ impl Ord for HeapTimer {
     }
 }
 
-static HANDLE_FALLBACK: AtomicUsize = AtomicUsize::new(0);
+static HANDLE_FALLBACK: AtomicPtr<Inner> = AtomicPtr::new(EMPTY_HANDLE);
+const EMPTY_HANDLE: *mut Inner = std::ptr::null_mut();
 
 /// Error returned from `TimerHandle::set_fallback`.
 #[derive(Clone, Debug)]
@@ -515,23 +515,23 @@ impl TimerHandle {
     /// successful then no future calls may succeed.
     pub fn set_as_global_fallback(self) -> Result<(), SetDefaultError> {
         unsafe {
-            let val = self.into_usize();
-            match HANDLE_FALLBACK.compare_exchange(0, val, SeqCst, SeqCst) {
+            let val = self.into_raw();
+            match HANDLE_FALLBACK.compare_exchange(EMPTY_HANDLE, val, SeqCst, SeqCst) {
                 Ok(_) => Ok(()),
                 Err(_) => {
-                    drop(TimerHandle::from_usize(val));
+                    drop(TimerHandle::from_raw(val));
                     Err(SetDefaultError(()))
                 }
             }
         }
     }
 
-    fn into_usize(self) -> usize {
-        unsafe { mem::transmute::<Weak<Inner>, usize>(self.inner) }
+    fn into_raw(self) -> *mut Inner {
+        self.inner.into_raw() as *mut Inner
     }
 
-    unsafe fn from_usize(val: usize) -> TimerHandle {
-        let inner = mem::transmute::<usize, Weak<Inner>>(val);
+    unsafe fn from_raw(raw: *mut Inner) -> TimerHandle {
+        let inner = Weak::from_raw(raw);
         TimerHandle { inner }
     }
 }
@@ -546,7 +546,7 @@ impl Default for TimerHandle {
         // actually create a helper thread then we'll just return a "defunkt"
         // handle which will return errors when timer objects are attempted to
         // be associated.
-        if fallback == 0 {
+        if fallback == EMPTY_HANDLE {
             let helper = match global::HelperThread::new() {
                 Ok(helper) => helper,
                 Err(_) => return TimerHandle { inner: Weak::new() },
@@ -570,11 +570,11 @@ impl Default for TimerHandle {
         // At this point our fallback handle global was configured so we use
         // its value to reify a handle, clone it, and then forget our reified
         // handle as we don't actually have an owning reference to it.
-        assert!(fallback != 0);
+        assert!(fallback != EMPTY_HANDLE);
         unsafe {
-            let handle = TimerHandle::from_usize(fallback);
+            let handle = TimerHandle::from_raw(fallback);
             let ret = handle.clone();
-            drop(handle.into_usize());
+            drop(handle.into_raw());
             return ret;
         }
     }
